@@ -1,6 +1,8 @@
 # Lost Guide
 
-Lost Guide: Embrace the Serendipitous Journey
+Embrace the Serendipitous Journey
+
+---
 Lost Guide is a unique mobile application designed to redefine the navigation experience.  Rather than providing the most direct route to a specified destination, Lost Guide intentionally guides users along an alternative path, fostering a sense of exploration and discovery.
 
 Inspired by the pre-digital era of wayfinding, where chance encounters and unexpected discoveries were integral to the journey, Lost Guide encourages users to relinquish control and embrace the unknown.  In a world dominated by precise GPS and optimized routes, this app offers a refreshing departure, inviting users to rediscover the joy of serendipitous exploration.
