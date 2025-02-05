@@ -150,7 +150,13 @@
             monkey: 'https://www.soundjay.com/jungle/monkey-screaming-01.mp3',
             fail: 'https://www.soundjay.com/misc/fail-trombone-01.mp3',
             british_success: 'path/to/british_success.mp3',
-            british_fail: 'path/to/british_fail.mp3'
+            british_fail: 'path/to/british_fail.mp3',
+            audio1: 'angry_sound1.mp3',  // New audio file 1
+            audio2: 'angry_sound2.mp3',  // New audio file 2
+            audio3: 'angry_sound3.mp3',  // New audio file 3
+            audio4: 'angry_sound4.mp3',  // New audio file 4
+            audio5: 'angry_sound5.mp3',  // New audio file 5
+            audio6: 'angry_sound6.mp3',  // New audio file 6
         };
 
         const BRITISH_INSULTS = {
@@ -189,7 +195,12 @@
         map = L.map('map').setView(ST_PETER_SQUARE, 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-
+        L.circle(ST_PETER_SQUARE, {
+            color: 'red',
+            fillColor: '#f03',
+            fillOpacity: 0.1,
+            radius: MAX_RADIUS_MILES * 1609.34
+        }).addTo(map);
 
          // Audio control functions
          function updateVolumes() {
@@ -256,6 +267,17 @@
             audio.play().catch(err => console.log('Sound play failed:', err));
         }
 
+        function playRandomAudio() {
+            // Randomly choose one of the three audio files
+            const audioFiles = [SOUNDS.audio1, SOUNDS.audio2, SOUNDS.audio3, SOUNDS.audio4, SOUNDS.audio5, SOUNDS.audio6];
+            const randomAudio = audioFiles[Math.floor(Math.random() * audioFiles.length)];
+
+            const audio = new Audio(randomAudio);
+            audio.play().catch(err => console.log('Error playing audio:', err));
+        }
+
+        setInterval(playRandomAudio, 6000);
+        
         function playBritishInsult(isSuccess) {
             if (isMuted) return;
 
