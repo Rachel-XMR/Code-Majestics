@@ -77,8 +77,8 @@
         // Constants
         const ST_PETER_SQUARE = [53.4779, -2.2441];
         const MAX_RADIUS_MILES = 3;
-        const RANDOM_OFFSET_METERS = 2000; // 增加偏移距離
-        const MIN_OFFSET_METERS = 1000; // 增加最小偏移距離
+        const RANDOM_OFFSET_METERS = 5000; // 增加偏移距離
+        const MIN_OFFSET_METERS = 3000; // 增加最小偏移距離
 
         // Global variables
         let map, userMarker, routingControl, destinationMarker;
@@ -165,7 +165,7 @@
                         if (routingControl) map.removeControl(routingControl);
 
                         destinationMarker = L.marker(randomPoint).addTo(map)
-                            .bindPopup('Your Destination');
+                            .bindPopup(`Your Destination: ${input}`);
 
                         if (userMarker) {
                             updateRoute(userMarker.getLatLng(), randomPoint);
