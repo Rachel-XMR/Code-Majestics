@@ -1,40 +1,71 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Manchester Walking Navigator</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
-    <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lost Navigation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #ffecd2, #fcb69f);
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+            padding-top: 50px; /* 向下移動 */
+        }
+        h1 {
+            font-size: 3em;
+            color: #ff6f61;
+        }
+        p {
+            font-size: 1.2em;
+            line-height: 1.6;
+            margin: 20px 0;
+        }
+        a {
+            display: inline-block;
+            padding: 10px 20px;
+            margin-top: 20px;
+            background: #ff6f61;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        a:hover {
+            background: #e55d50;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            margin: 20px;
+        }
+    </style>
 </head>
 <body>
-    <div id="controls">
-        <input type="text" id="destination-input" placeholder="Enter your destination in Manchester" style="width: 300px;">
-        <button onclick="searchDestination()">Set Destination</button>
-        <button onclick="startNavigation()" id="start-nav">Start Navigation</button>
-        <button onclick="stopNavigation()" id="stop-nav" style="display:none;">Stop Navigation</button>
-        <div id="status"></div>
+    <div class="container">
+        <h1>Bad Map</h1>
+        <p>
+            Welcome to ‘Lost Navigation’ - a page designed for explorers, travellers (or simply you who like to get lost)! 🎉
+            <br><br>
+            All you need to do is type in a location and <strong>press the ‘start’</strong> button with confidence, because next thing you know, you'll be taken to a completely different place. Maybe you were going to go to a coffee shop and ended up in a car park, or you were going to go to a bookstore and you ended up in a park in the middle of nowhere! But don't worry, getting lost isn't a failure, it's a whole new journey! 🌍✨.
+            <br><br>
+            The fact that you've arrived in an unfamiliar place is proof that you've succeeded! 🎶 When you arrive at the wrong destination, this page will automatically play a “cheerful music“ to welcome you to this ‘unexpected’ new world. You may feel a bit confused, but that's the beauty of being lost! 🎵💃💃💃
+            <br><br>
+            So let go of your attachment to your destination and follow us to a new and unexpected place for a completely different experience! Every ‘wrong’ destination is a ‘right’ unexpected trip. Come on, give yourself a reason to get lost and let's get ‘lost’ together on this wonderful page <strong>Lost</strong>! 🚗🎶
+            <br><br>
+            Ready to embark on an adventure into the unknown? Enter a location and let us take you wherever you want!
+        </p>
+        <hr>
+        <a href="index.html">Start</a>
     </div>
-    <div class="volume-control">
-        <div>Master Volume: <input type="range" id="masterVolume" class="volume-slider" min="0" max="100" value="75"></div>
-        <div>Monkey Volume: <input type="range" id="monkeyVolume" class="volume-slider" min="0" max="100" value="75"></div>
-        <div>Voice Volume: <input type="range" id="voiceVolume" class="volume-slider" min="0" max="100" value="75"></div>
-        <button id="muteButton" class="mute-button">Mute All</button>
-        <select id="accentSelector" class="accent-selector">
-            <option value="en-GB">British (General)</option>
-            <option value="en-GB-Northern">Northern</option>
-            <option value="en-GB-London">London</option>
-            <option value="en-GB-Scouse">Scouse</option>
-        </select>
-    </div>
-
-    <div id="location-status" class="info-box">Initializing...</div>
-    <div id="distance-info" class="info-box"></div>
-    <div id="map"></div>
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
-    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-    <script src="app.js"></script>
 </body>
 </html>

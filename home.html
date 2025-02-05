@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manchester Walking Navigator</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <div id="controls">
+        <input type="text" id="destination-input" placeholder="Enter your destination in Manchester" style="width: 300px;">
+        <button onclick="searchDestination()">Set Destination</button>
+        <button onclick="startNavigation()" id="start-nav">Start Navigation</button>
+        <button onclick="stopNavigation()" id="stop-nav" style="display:none;">Stop Navigation</button>
+        <div id="status"></div>
+    </div>
+    <div class="volume-control">
+        <div>Master Volume: <input type="range" id="masterVolume" class="volume-slider" min="0" max="100" value="75"></div>
+        <div>Monkey Volume: <input type="range" id="monkeyVolume" class="volume-slider" min="0" max="100" value="75"></div>
+        <div>Voice Volume: <input type="range" id="voiceVolume" class="volume-slider" min="0" max="100" value="75"></div>
+        <button id="muteButton" class="mute-button">Mute All</button>
+        <select id="accentSelector" class="accent-selector">
+            <option value="en-GB">British (General)</option>
+            <option value="en-GB-Northern">Northern</option>
+            <option value="en-GB-London">London</option>
+            <option value="en-GB-Scouse">Scouse</option>
+        </select>
+    </div>
+
+    <div id="location-status" class="info-box">Initializing...</div>
+    <div id="distance-info" class="info-box"></div>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
