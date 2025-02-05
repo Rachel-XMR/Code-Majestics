@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manchester Walking Navigator</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { height: 80vh; width: 100%; }
+        #controls { 
+            padding: 20px; 
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+        }
+        .info-box {
+            position: fixed;
+            padding: 10px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #location-status { top: 20px; right: 20px; }
+        #distance-info { bottom: 20px; left: 20px; }
+        #status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            background: #fff;
+        }
+        .warning-box {
+            background: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        button {
+            padding: 8px 15px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 5px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; }
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        .leaflet-control-attribution { display: none; }
+        .custom-div-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .volume-control {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            width: 250px;
+        }
+        .volume-slider {
+            width: 100px;
+            margin: 5px 0;
+        }
+        .mute-button {
+            padding: 5px 10px;
+            margin: 5px 0;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .accent-selector {
+            margin: 5px 0;
+            padding: 3px;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            text-align: center;
+            z-index: 10000;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <input type="text" id="destination-input" placeholder="Enter your destination in Manchester" style="width: 300px;">
+        <button onclick="searchDestination()">Set Destination</button>
+        <button onclick="startNavigation()" id="start-nav">Start Navigation</button>
+        <button onclick="stopNavigation()" id="stop-nav" style="display:none;">Stop Navigation</button>
+        <div id="status"></div>
+    </div>
+    <div class="volume-control">
+        <div>Master Volume: <input type="range" id="masterVolume" class="volume-slider" min="0" max="100" value="75"></div>
+        <div>Monkey Volume: <input type="range" id="monkeyVolume" class="volume-slider" min="0" max="100" value="75"></div>
+        <div>Voice Volume: <input type="range" id="voiceVolume" class="volume-slider" min="0" max="100" value="75"></div>
+        <button id="muteButton" class="mute-button">Mute All</button>
+        <select id="accentSelector" class="accent-selector">
+            <option value="en-GB">British (General)</option>
+            <option value="en-GB-Northern">Northern</option>
+            <option value="en-GB-London">London</option>
+            <option value="en-GB-Scouse">Scouse</option>
+        </select>
+    </div>
+
+
+    <div id="location-status" class="info-box">Initializing...</div>
+    <div id="distance-info" class="info-box"></div>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+    <script>
+        // Constants
+        const ST_PETER_SQUARE = [53.4779, -2.2441];
+        const MAX_RADIUS_MILES = 3;
+        const RANDOM_OFFSET_METERS = 5000; // 增加偏移距離
+        const MIN_OFFSET_METERS = 3000; // 增加最小偏移距離
+
+        const SOUNDS = {
+            monkey: 'https://www.soundjay.com/jungle/monkey-screaming-01.mp3',
+            fail: 'https://www.soundjay.com/misc/fail-trombone-01.mp3',
+            british_success: 'path/to/british_success.mp3',
+            british_fail: 'path/to/british_fail.mp3'
+        };
+
+        const BRITISH_INSULTS = {
+            success: [
+                "Oh my days! You absolute muppet! Following directions like a lost puppy!",
+                "Bless your cotton socks, you've actually done it! Walking straight into my trap!",
+                "Darling, you're about as sharp as a chocolate teapot, aren't you?",
+                "Well well well, looks like someone's a few sandwiches short of a picnic!",
+                "Oh sweetie, you're really not the brightest button in the box, are you?",
+                "Congratulations love, you've just proven you'd get lost in a phone box!",
+                "Oh honey, you're exactly why we can't have nice things!"
+            ],
+            failure: [
+                "Aww, precious! Too scared to finish the walk? How adorable!",
+                "Running away already? Your PE teacher was right about you!",
+                "Oh darling, I expected nothing and you still managed to disappoint me!",
+                "Bless your heart, can't even finish a simple walk without bottling it!",
+                "Well aren't you just a delicate little flower! Too much walking for you?",
+                "Oh sweetie, did your legs get tired? Or was it your courage?",
+                "Look who's doing what they do best - giving up!"
+            ]
+        };
+
+        // Global variables
+        let map, userMarker, routingControl, destinationMarker;
+        let isNavigating = false;
+        let watchId = null;
+        let currentDestination = null;
+        let isMuted = false;
+        let masterVolume = 0.75;
+        let monkeyVolume = 0.75;
+        let voiceVolume = 0.75;
+        let originalDestinationName = '';
+
+        // Initialize map
+        map = L.map('map').setView(ST_PETER_SQUARE, 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        // Add boundary circle
+        L.circle(ST_PETER_SQUARE, {
+            color: 'red',
+            fillColor: '#f03',
+            fillOpacity: 0.1,
+            radius: MAX_RADIUS_MILES * 1609.34
+        }).addTo(map);
+
+        // Helper functions
+        function calculateDistance(point1, point2) {
+            return map.distance(point1, point2);
+        }
+
+        function isWithinBounds(lat, lng) {
+            const distance = calculateDistance([lat, lng], ST_PETER_SQUARE);
+            return distance <= (MAX_RADIUS_MILES * 1609.34);
+        }
+
+        function getRandomDestination(lat, lng, minRadius, maxRadius) {
+            const minRadiusInDegrees = minRadius / 111300;
+            const maxRadiusInDegrees = maxRadius / 111300;
+            const angle = Math.random() * Math.PI * 2;
+            const distance = minRadiusInDegrees + Math.random() * (maxRadiusInDegrees - minRadiusInDegrees);
+            const dx = distance * Math.cos(angle);
+            const dy = distance * Math.sin(angle);
+            return [
+                lat + dy,
+                lng + dx / Math.cos(lat * Math.PI / 180)
+            ];
+        }
+
+        function capitalizeWords(str) {
+            return str.replace(/\b\w/g, char => char.toUpperCase());
+        }
+
+        // Main functions
+        function searchDestination() {
+            const input = document.getElementById('destination-input').value;
+            const status = document.getElementById('status');
+            status.innerHTML = 'Searching...';
+            originalDestinationName = capitalizeWords(input);
+
+            const placeAliases = {
+                'salford quay': 'Salford Quays',
+                'media city': 'MediaCityUK',
+                'piccadilly': 'Manchester Piccadilly',
+                'northern quarter': 'Northern Quarter Manchester',
+                'uni': 'University of Manchester',
+                'town hall': 'Manchester Town Hall',
+                'arndale': 'Manchester Arndale',
+                'deansgate': 'Deansgate Manchester',
+                'oxford road': 'Oxford Road Manchester',
+                'victoria': 'Manchester Victoria',
+                'trafford': 'Trafford Centre',
+                'etihad': 'Etihad Stadium Manchester',
+                'old trafford': 'Old Trafford Stadium'
+            };
+
+            const cleanInput = input.toLowerCase().trim();
+            const searchTerm = placeAliases[cleanInput] || cleanInput;
+
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${searchTerm}, Manchester, UK&limit=1`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        const result = data[0];
+                        const originalPoint = [parseFloat(result.lat), parseFloat(result.lon)];
+
+                        if (!isWithinBounds(originalPoint[0], originalPoint[1])) {
+                            status.innerHTML = 'This destination is too far. Please choose a location within 3 miles of Manchester city centre.';
+                            return;
+                        }
+
+                        const randomPoint = getRandomDestination(originalPoint[0], originalPoint[1], MIN_OFFSET_METERS, RANDOM_OFFSET_METERS);
+                        currentDestination = randomPoint;
+
+                        if (destinationMarker) map.removeLayer(destinationMarker);
+                        if (routingControl) map.removeControl(routingControl);
+
+                        destinationMarker = L.marker(randomPoint, {
+                            icon: L.divIcon({
+                                className: 'custom-div-icon',
+                                html: `<div style="background-color:#007bff;color:white;padding:5px;border-radius:5px;">${originalDestinationName}</div>`,
+                                iconSize: [100, 40],
+                                iconAnchor: [50, 20]
+                            })
+                        }).addTo(map);
+
+                        if (userMarker) {
+                            updateRoute(userMarker.getLatLng(), randomPoint);
+                        }
+
+                        const bounds = L.latLngBounds(
+                            userMarker ? [userMarker.getLatLng()] : [],
+                            [randomPoint]
+                        );
+                        map.fitBounds(bounds, { padding: [50, 50] });
+
+                        status.innerHTML = 'Route set! Click "Start Navigation" to begin.';
+                    } else {
+                        status.innerHTML = 'Location not found. Please try again.';
+                    }
+                })
+                .catch(error => {
+                    console.error('Search error:', error);
+                    status.innerHTML = 'Search failed. Please try again.';
+                });
+        }
+
+        function updateRoute(start, end) {
+            if (routingControl) {
+                map.removeControl(routingControl);
+            }
+
+            routingControl = L.Routing.control({
+                waypoints: [
+                    L.latLng(start),
+                    L.latLng(end)
+                ],
+                router: L.Routing.osrmv1({
+                    serviceUrl: 'https://router.project-osrm.org/route/v1',
+                    profile: 'foot',
+                    timeout: 30000
+                }),
+                lineOptions: {
+                    styles: [{color: 'blue', opacity: 0.6, weight: 4}]
+                },
+                showAlternatives: false,
+                addWaypoints: false,
+                show: false,
+                routeWhileDragging: false,
+                fitSelectedRoutes: false
+            }).addTo(map);
+
+            routingControl.on('routesfound', function(e) {
+                const container = routingControl.getContainer();
+                const instructions = container.querySelector('.leaflet-routing-container');
+                if (instructions) {
+                    instructions.style.display = 'none';
+                }
+            });
+        }
+
+        function checkDestinationReached(userLat, userLng) {
+            if (!currentDestination || !isNavigating) return;
+            
+            const distance = calculateDistance([userLat, userLng], currentDestination);
+            if (distance < 20) { // Within 20 meters of destination
+                isNavigating = false;
+                showOverlay(true);
+            }
+        }
+
+        function updateLocation(position) {
+            const userLat = position.coords.latitude;
+            const userLng = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            if (!userMarker) {
+                userMarker = L.marker([userLat, userLng]).addTo(map);
+            } else {
+                userMarker.setLatLng([userLat, userLng]);
+            }
+
+            document.getElementById('location-status').innerHTML = 'Location updated';
+
+            if (isNavigating && currentDestination) {
+                updateRoute([userLat, userLng], currentDestination);
+                const distance = calculateDistance([userLat, userLng], currentDestination);
+                document.getElementById('distance-info').innerHTML = 
+                    `Distance to destination: ${Math.round(distance)}m`;
+                    
+                checkDestinationReached(userLat, userLng);
+            }
+        }
+
+        function startNavigation() {
+            if (!currentDestination) {
+                alert('Please set a destination first');
+                return;
+            }
+
+            isNavigating = true;
+            document.getElementById('start-nav').style.display = 'none';
+            document.getElementById('stop-nav').style.display = 'inline';
+
+            if ("geolocation" in navigator) {
+                watchId = navigator.geolocation.watchPosition(
+                    updateLocation,
+                    (error) => {
+                        document.getElementById('location-status').innerHTML = 
+                            'Location error: ' + error.message;
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0
+                    }
+                );
+            }
+        }
+
+        function stopNavigation() {
+            if (isNavigating) {
+                isNavigating = false;
+                showOverlay(false);
+            }
+            document.getElementById('start-nav').style.display = 'inline';
+            document.getElementById('stop-nav').style.display = 'none';
+            if (watchId) navigator.geolocation.clearWatch(watchId);
+        }
+
+
+        function isWithinBounds(lat, lng) {
+            const distance = calculateDistance([lat, lng], ST_PETER_SQUARE);
+            return distance <= (MAX_RADIUS_MILES * 1609.34);
+        }
+
+        // Initialize location tracking
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(updateLocation);
+        }
+
+        let voiceInitialized = false;
+        window.speechSynthesis.onvoiceschanged = function() {
+            if (!voiceInitialized) {
+                const voices = window.speechSynthesis.getVoices();
+                console.log("Available voices:", voices.map(v => `${v.name} (${v.lang})`));
+                voiceInitialized = true;
+            }
+        };
+    </script>
+</body>
+</html>
