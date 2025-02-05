@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
     <style>
-        body { margin: 0; padding: 0; }
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
         #map { height: 80vh; width: 100%; }
         #controls { 
             padding: 20px; 
@@ -30,13 +30,6 @@
             border-radius: 5px;
             background: #fff;
         }
-        .warning-box {
-            background: #fff3cd;
-            color: #856404;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
-        }
         button {
             padding: 8px 15px;
             margin: 0 5px;
@@ -57,12 +50,6 @@
             width: 300px;
         }
         .leaflet-control-attribution { display: none; }
-        .custom-div-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-        }
         .volume-control {
             position: fixed;
             bottom: 20px;
@@ -111,12 +98,13 @@
 </head>
 <body>
     <div id="controls">
-        <input type="text" id="destination-input" placeholder="Enter your destination in Manchester" style="width: 300px;">
+        <input type="text" id="destination-input" placeholder="Enter your destination in Manchester">
         <button onclick="searchDestination()">Set Destination</button>
         <button onclick="startNavigation()" id="start-nav">Start Navigation</button>
-        <button onclick="stopNavigation()" id="stop-nav" style="display:none;">Stop Navigation</button>
+        <button onclick="stopNavigation()" id="stop-nav" style="display:none; background: #dc3545;">Give Up Like a Coward</button>
         <div id="status"></div>
     </div>
+
     <div class="volume-control">
         <div>Master Volume: <input type="range" id="masterVolume" class="volume-slider" min="0" max="100" value="75"></div>
         <div>Monkey Volume: <input type="range" id="monkeyVolume" class="volume-slider" min="0" max="100" value="75"></div>
@@ -130,7 +118,6 @@
         </select>
     </div>
 
-
     <div id="location-status" class="info-box">Initializing...</div>
     <div id="distance-info" class="info-box"></div>
     <div id="map"></div>
@@ -143,14 +130,20 @@
         // Constants
         const ST_PETER_SQUARE = [53.4779, -2.2441];
         const MAX_RADIUS_MILES = 3;
-        const RANDOM_OFFSET_METERS = 5000; // 增加偏移距離
-        const MIN_OFFSET_METERS = 3000; // 增加最小偏移距離
+        const RANDOM_OFFSET_METERS = 500;
+        const MIN_OFFSET_METERS = 300;
 
         const SOUNDS = {
             monkey: 'https://www.soundjay.com/jungle/monkey-screaming-01.mp3',
             fail: 'https://www.soundjay.com/misc/fail-trombone-01.mp3',
             british_success: 'path/to/british_success.mp3',
-            british_fail: 'path/to/british_fail.mp3'
+            british_fail: 'path/to/british_fail.mp3',
+            audio1: 'angry_sound1.mp3',  // New audio file 1
+            audio2: 'angry_sound2.mp3',  // New audio file 2
+            audio3: 'angry_sound3.mp3',  // New audio file 3
+            audio4: 'angry_sound4.mp3',  // New audio file 4
+            audio5: 'angry_sound5.mp3',  // New audio file 5
+            audio6: 'angry_sound6.mp3',  // New audio file 6
         };
 
         const BRITISH_INSULTS = {
@@ -183,16 +176,21 @@
         let masterVolume = 0.75;
         let monkeyVolume = 0.75;
         let voiceVolume = 0.75;
-        let originalDestinationName = '';
 
         // Initialize map
         map = L.map('map').setView(ST_PETER_SQUARE, 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
+        // Add boundary circle
+        L.circle(ST_PETER_SQUARE, {
+            color: 'red',
+            fillColor: '#f03',
+            fillOpacity: 0.1,
+            radius: MAX_RADIUS_MILES * 1609.34
+        }).addTo(map);
 
-
-         // Audio control functions
-         function updateVolumes() {
+        // Audio control functions
+        function updateVolumes() {
             masterVolume = document.getElementById('masterVolume').value / 100;
             monkeyVolume = document.getElementById('monkeyVolume').value / 100;
             voiceVolume = document.getElementById('voiceVolume').value / 100;
@@ -209,43 +207,33 @@
         document.getElementById('voiceVolume').addEventListener('input', updateVolumes);
         document.getElementById('muteButton').addEventListener('click', toggleMute);
 
-
-        // Add boundary circle
-        L.circle(ST_PETER_SQUARE, {
-            color: 'red',
-            fillColor: '#f03',
-            fillOpacity: 0.1,
-            radius: MAX_RADIUS_MILES * 1609.34
-        }).addTo(map);
-
-        // Helper functions
         function calculateDistance(point1, point2) {
             return map.distance(point1, point2);
         }
 
-        function isWithinBounds(lat, lng) {
-            const distance = calculateDistance([lat, lng], ST_PETER_SQUARE);
-            return distance <= (MAX_RADIUS_MILES * 1609.34);
+        function getRandomDestination(lat, lng, maxRadius) {
+            const minRadius = MIN_OFFSET_METERS;
+            let randomPoint;
+            let distance;
+            
+            do {
+                const angle = Math.random() * Math.PI * 2;
+                const randomDistance = (minRadius + Math.random() * (maxRadius - minRadius)) / 111300;
+                
+                const dx = randomDistance * Math.cos(angle);
+                const dy = randomDistance * Math.sin(angle);
+                
+                randomPoint = [
+                    lat + dy,
+                    lng + dx / Math.cos(lat * Math.PI / 180)
+                ];
+                
+                distance = calculateDistance([lat, lng], randomPoint);
+            } while (distance < minRadius || distance > maxRadius);
+            
+            return randomPoint;
         }
 
-        function getRandomDestination(lat, lng, minRadius, maxRadius) {
-            const minRadiusInDegrees = minRadius / 111300;
-            const maxRadiusInDegrees = maxRadius / 111300;
-            const angle = Math.random() * Math.PI * 2;
-            const distance = minRadiusInDegrees + Math.random() * (maxRadiusInDegrees - minRadiusInDegrees);
-            const dx = distance * Math.cos(angle);
-            const dy = distance * Math.sin(angle);
-            return [
-                lat + dy,
-                lng + dx / Math.cos(lat * Math.PI / 180)
-            ];
-        }
-
-        function capitalizeWords(str) {
-            return str.replace(/\b\w/g, char => char.toUpperCase());
-        }
-
-        
         function playSound(type) {
             if (isMuted) return;
             
@@ -255,6 +243,17 @@
                           masterVolume * voiceVolume;
             audio.play().catch(err => console.log('Sound play failed:', err));
         }
+
+        function playRandomAudio() {
+            // Randomly choose one of the three audio files
+            const audioFiles = [SOUNDS.audio1, SOUNDS.audio2, SOUNDS.audio3, SOUNDS.audio4, SOUNDS.audio5, SOUNDS.audio6];
+            const randomAudio = audioFiles[Math.floor(Math.random() * audioFiles.length)];
+
+            const audio = new Audio(randomAudio);
+            audio.play().catch(err => console.log('Error playing audio:', err));
+        }
+
+        setInterval(playRandomAudio, 6000);
 
         function playBritishInsult(isSuccess) {
             if (isMuted) return;
@@ -328,59 +327,31 @@
             document.body.appendChild(overlay);
         }
 
-
-        // Main functions
         function searchDestination() {
             const input = document.getElementById('destination-input').value;
             const status = document.getElementById('status');
             status.innerHTML = 'Searching...';
-            originalDestinationName = capitalizeWords(input);
 
-            const placeAliases = {
-                'salford quay': 'Salford Quays',
-                'media city': 'MediaCityUK',
-                'piccadilly': 'Manchester Piccadilly',
-                'northern quarter': 'Northern Quarter Manchester',
-                'uni': 'University of Manchester',
-                'town hall': 'Manchester Town Hall',
-                'arndale': 'Manchester Arndale',
-                'deansgate': 'Deansgate Manchester',
-                'oxford road': 'Oxford Road Manchester',
-                'victoria': 'Manchester Victoria',
-                'trafford': 'Trafford Centre',
-                'etihad': 'Etihad Stadium Manchester',
-                'old trafford': 'Old Trafford Stadium'
-            };
-
-            const cleanInput = input.toLowerCase().trim();
-            const searchTerm = placeAliases[cleanInput] || cleanInput;
-
-            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${searchTerm}, Manchester, UK&limit=1`)
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${input}, Manchester, UK&limit=1`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.length > 0) {
                         const result = data[0];
                         const originalPoint = [parseFloat(result.lat), parseFloat(result.lon)];
-
+                        
                         if (!isWithinBounds(originalPoint[0], originalPoint[1])) {
                             status.innerHTML = 'This destination is too far. Please choose a location within 3 miles of Manchester city centre.';
                             return;
                         }
 
-                        const randomPoint = getRandomDestination(originalPoint[0], originalPoint[1], MIN_OFFSET_METERS, RANDOM_OFFSET_METERS);
+                        const randomPoint = getRandomDestination(originalPoint[0], originalPoint[1], RANDOM_OFFSET_METERS);
                         currentDestination = randomPoint;
 
                         if (destinationMarker) map.removeLayer(destinationMarker);
                         if (routingControl) map.removeControl(routingControl);
 
-                        destinationMarker = L.marker(randomPoint, {
-                            icon: L.divIcon({
-                                className: 'custom-div-icon',
-                                html: `<div style="background-color:#007bff;color:white;padding:5px;border-radius:5px;">${originalDestinationName}</div>`,
-                                iconSize: [100, 40],
-                                iconAnchor: [50, 20]
-                            })
-                        }).addTo(map);
+                        destinationMarker = L.marker(randomPoint).addTo(map)
+                            .bindPopup('Your Destination');
 
                         if (userMarker) {
                             updateRoute(userMarker.getLatLng(), randomPoint);
@@ -415,26 +386,15 @@
                 ],
                 router: L.Routing.osrmv1({
                     serviceUrl: 'https://router.project-osrm.org/route/v1',
-                    profile: 'foot',
-                    timeout: 30000
+                    profile: 'foot'
                 }),
                 lineOptions: {
                     styles: [{color: 'blue', opacity: 0.6, weight: 4}]
                 },
                 showAlternatives: false,
                 addWaypoints: false,
-                show: false,
-                routeWhileDragging: false,
-                fitSelectedRoutes: false
+                show: false
             }).addTo(map);
-
-            routingControl.on('routesfound', function(e) {
-                const container = routingControl.getContainer();
-                const instructions = container.querySelector('.leaflet-routing-container');
-                if (instructions) {
-                    instructions.style.display = 'none';
-                }
-            });
         }
 
         function checkDestinationReached(userLat, userLng) {
@@ -450,7 +410,6 @@
         function updateLocation(position) {
             const userLat = position.coords.latitude;
             const userLng = position.coords.longitude;
-            const accuracy = position.coords.accuracy;
 
             if (!userMarker) {
                 userMarker = L.marker([userLat, userLng]).addTo(map);
@@ -465,7 +424,7 @@
                 const distance = calculateDistance([userLat, userLng], currentDestination);
                 document.getElementById('distance-info').innerHTML = 
                     `Distance to destination: ${Math.round(distance)}m`;
-                    
+                
                 checkDestinationReached(userLat, userLng);
             }
         }
@@ -501,11 +460,11 @@
                 isNavigating = false;
                 showOverlay(false);
             }
+            
             document.getElementById('start-nav').style.display = 'inline';
             document.getElementById('stop-nav').style.display = 'none';
             if (watchId) navigator.geolocation.clearWatch(watchId);
         }
-
 
         function isWithinBounds(lat, lng) {
             const distance = calculateDistance([lat, lng], ST_PETER_SQUARE);
@@ -517,6 +476,7 @@
             navigator.geolocation.getCurrentPosition(updateLocation);
         }
 
+        // Initialize voice selection
         let voiceInitialized = false;
         window.speechSynthesis.onvoiceschanged = function() {
             if (!voiceInitialized) {
